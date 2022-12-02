@@ -28,19 +28,25 @@ async function run() {
             res.send(services);
         })
 
-        //service bookcd করা হয়েছে,,,,, একে filter করতে হবে , নিছের পদ্ধতিতে ,,,,
+        //service bookcd করা হয়েছে,,,,, একে filter করতে হবে , নিছের পদ্ধতিতে ,,,, already booking আছে কি না,,, oi date a ache ki na,,, oi Patient er same date a kono Booking ache ki na ta Chack korte hobe
         // app.post("/booking", async (req, res) => {
         //     const bookingData = req.body;
         //     const result = await bookingsCollection.insertOne(bookingData);
         //     res.send(result)
         // })
         //  +
+        // add filte (mil kore dekhbe service Name , booking date , ar petient name same ki na)
         app.post("/booking", async (req, res) => {
             const bookingData = req.body;
-            
+            const query = { serviceName: bookingData.serviceName, date: bookingData.date, patientName: bookingData.patientName }
+            const exists = await bookingsCollection.findOne(query);
+            if (exists) {
+                return res.send({ success: false, booking: exists })
+            }
             const result = await bookingsCollection.insertOne(bookingData);
-            res.send(result)
+            res.send({ success: true, result })
         })
+
 
         // app.get("/booking/:email", async(req, res)=>{
         //     const email = req.params.email;
