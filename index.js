@@ -28,6 +28,30 @@ async function run() {
             res.send(services);
         })
 
+        app.get("/available", async (req, res) => {
+            const date = req.query.date;
+
+            //stape 1 : get All services
+            const services = await serviceCollection.find().toArray();
+
+            // stape 2 : get the booking of thet day
+            const query = { date: date };
+            const bookings = await bookingsCollection.find(query).toArray();  // এখানে উক্ত date (যে date user পাঠাবে) এর booking গুলো find করে বের করে আনবে,,,
+
+            //step 3 : for each service , find booking for that service
+            services.forEach(service => {
+                const servicesBookings = bookings.filter(b => b.serviceName === service.name);
+                // service.booked = servicesBookings.map(s => s.slots);
+                const booked = servicesBookings.map(s => s.slots);
+                service.slots = service.slots.filter(s => !booked.includes(s));
+                // const available = service.slots.filter(s => !booked.includes(s));
+                // service.available = available;
+            })
+            // console.log(services)
+
+            res.send(services);
+        })
+
         //service bookcd করা হয়েছে,,,,, একে filter করতে হবে , নিছের পদ্ধতিতে ,,,, already booking আছে কি না,,, oi date a ache ki na,,, oi Patient er same date a kono Booking ache ki na ta Chack korte hobe
         // app.post("/booking", async (req, res) => {
         //     const bookingData = req.body;
@@ -35,14 +59,16 @@ async function run() {
         //     res.send(result)
         // })
         //  +
-        // add filte (mil kore dekhbe service Name , booking date , ar petient name same ki na)
+        // add filte (chack kore dekhbe service Name , booking date , r petient name same ki na)
         app.post("/booking", async (req, res) => {
             const bookingData = req.body;
             const query = { serviceName: bookingData.serviceName, date: bookingData.date, patientName: bookingData.patientName }
             const exists = await bookingsCollection.findOne(query);
+            //find kore dekhbe data ache ki na ,,, thakle return korbe r success false hisebe pathabe,,, code r samne jabe na,,, r booking na thakle (insertOne ba add korbe)
             if (exists) {
                 return res.send({ success: false, booking: exists })
             }
+            //booking add korbe
             const result = await bookingsCollection.insertOne(bookingData);
             res.send({ success: true, result })
         })
