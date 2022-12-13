@@ -28,28 +28,50 @@ async function run() {
             res.send(services);
         })
 
+        // this is not the propre way to query
+        // after learning more mongodb . use aggregate lookeup, pipeline , match , group ETC
         app.get("/available", async (req, res) => {
             const date = req.query.date;
-
+            const query = { date: date };
             //stape 1 : get All services
             const services = await serviceCollection.find().toArray();
 
             // stape 2 : get the booking of thet day
-            const query = { date: date };
             const bookings = await bookingsCollection.find(query).toArray();  // এখানে উক্ত date (যে date user পাঠাবে) এর booking গুলো find করে বের করে আনবে,,,
 
             //step 3 : for each service , find booking for that service
             services.forEach(service => {
-                const servicesBookings = bookings.filter(b => b.serviceName === service.name);
-                // service.booked = servicesBookings.map(s => s.slots);
-                const booked = servicesBookings.map(s => s.slots);
-                service.slots = service.slots.filter(s => !booked.includes(s));
-                // const available = service.slots.filter(s => !booked.includes(s));
-                // service.available = available;
+                const serviceBooking = bookings.filter(book => book.serviceName === service.name);
+                const serviceBookingsSloat = serviceBooking.map(sl => sl.slots);
+                // console.log(serviceBookingsSloat);
+                const bookedSloats = service.slots.filter(slot => !serviceBookingsSloat.includes(slot))
+                // console.log(bookedSloats);
+
+                service.slots = bookedSloats;
+
             })
-            // console.log(services)
 
             res.send(services);
+
+
+
+
+
+
+
+
+
+            // services.forEach(service => {
+            //     const servicesBookings = bookings.filter(b => b.serviceName === service.name);
+            //     // service.booked = servicesBookings.map(s => s.slots);
+            //     const booked = servicesBookings.map(s => s.slots);
+            //     service.slots = service.slots.filter(s => !booked.includes(s));
+            //     // const available = service.slots.filter(s => !booked.includes(s));
+            //     // service.available = available;
+            // })
+            // console.log(services)
+
+            // res.send(services);
         })
 
         //service bookcd করা হয়েছে,,,,, একে filter করতে হবে , নিছের পদ্ধতিতে ,,,, already booking আছে কি না,,, oi date a ache ki na,,, oi Patient er same date a kono Booking ache ki na ta Chack korte hobe
