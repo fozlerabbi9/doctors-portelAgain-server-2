@@ -32,7 +32,9 @@ async function run() {
         // after learning more mongodb . use aggregate lookeup, pipeline , match , group ETC
         app.get("/available", async (req, res) => {
             const date = req.query.date;
+            // const email = req.query.email;
             const query = { date: date };
+            // console.log(date);
             //stape 1 : get All services
             const services = await serviceCollection.find().toArray();
 
@@ -52,12 +54,6 @@ async function run() {
             })
 
             res.send(services);
-
-
-
-
-
-
 
 
 
@@ -97,11 +93,13 @@ async function run() {
 
 
         // app.get("/booking/:email", async(req, res)=>{
-        //     const email = req.params.email;
+        //     const email = req.query.email;
         //     console.log("eeeee ", email);
         // })
         app.get("/booking", async (req, res) => {
-            const query = {};
+            const email = req.query.email;
+            // console.log(email)
+            const query = { email: email };
             const result = await bookingsCollection.find(query).toArray();
             res.send(result)
         })
