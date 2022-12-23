@@ -1,4 +1,4 @@
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const express = require('express');
 const cors = require("cors");
 const app = express();
@@ -19,6 +19,7 @@ async function run() {
         await client.connect();
         const serviceCollection = client.db("doctorsPortalAgain").collection("doctorsPortalAgainServices");
         const bookingsCollection = client.db("doctorsPortalAgain").collection("doctorsPortalAgainBookings");
+        const usersCollection = client.db("doctorsPortalAgain").collection("users");
         // const serviceCollection = client.db("doctors_portal_again").collection("doctors_portal_again_services");
 
         app.get("/services", async (req, res) => {
@@ -103,6 +104,28 @@ async function run() {
             const result = await bookingsCollection.find(query).toArray();
             res.send(result)
         })
+
+        // Put API 
+        app.put("/users/:email", async (req, res) => {
+            const email = req.params.email;
+            const user = req.body;
+            const filter = { email: email };
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: user,
+            };
+            const result = await usersCollection.updateOne(filter, updateDoc, options);
+            res.send(result)
+        })
+
+
+        // DELETE API
+        app.delete("/booking/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await bookingsCollection.deleteOne(query);
+            res.send(result);
+        })
     }
     finally {
 
@@ -116,7 +139,7 @@ run().catch(console.dir);
 
 
 app.get('/', (req, res) => {
-    res.send('Hello form doctors portal again server')
+    res.send('Hello form doctors portal again server coooooooooooool')
 })
 
 app.listen(port, () => {
