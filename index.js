@@ -3,10 +3,30 @@ const express = require('express');
 const cors = require("cors");
 const app = express();
 const port = process.env.PORT || 5000;
+const jwt = require('jsonwebtoken');
 require("dotenv").config();
 
 app.use(cors());
 app.use(express.json());
+
+const verifyJwt = (req, res, next) => {
+    // console.log('======verifyJwt')
+    const authorizToken = req.headers?.authorization;
+    if (!authorizToken) {
+        return res.status(401).send({ message: "UnAuthorized Access" })
+    }
+
+    const token = authorizToken.split(' ')[1];
+    jwt.verify(token, process.env.ACCESS_SECRET_TOKEN, function (err, decoded) {
+        if (err) {
+            return res.status(403).send({ message: "Forbidden Access" })
+        }
+        console.log(decoded)
+        req.decoded = decoded;
+        next()
+    })
+
+}
 
 
 // const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.lqiskfd.mongodb.net/?retryWrites=true&w=majority`;
@@ -92,20 +112,26 @@ async function run() {
             res.send({ success: true, result })
         })
 
-
-        // app.get("/booking/:email", async(req, res)=>{
-        //     const email = req.query.email;
-        //     console.log("eeeee ", email);
-        // })
-        app.get("/booking", async (req, res) => {
+        // (myAppointment) er api theke assche  email assche and body te authorization hisebe Berer a ("accessToken") asseche
+        // app.get("/booking", async (req, res) => {
+        app.get("/booking", verifyJwt, async (req, res) => {
             const email = req.query.email;
-            // console.log(email)
-            const query = { email: email };
-            const result = await bookingsCollection.find(query).toArray();
-            res.send(result)
+            const decodedEmail = req.decoded.email;
+            if (email === decodedEmail) {
+
+                // const authorization = req?.headers?.authorization;
+                // const authoriToken = authorization?.split(" ")[1];
+                // console.log("===", authoriToken);
+                const query = { email: email };
+                const result = await bookingsCollection.find(query).toArray();
+                return res.send(result)
+            }
+            else {
+                return res.status(403).send({ message: "Forbidden access" })
+            }
         })
 
-        // Put API 
+        // Put API  (useToken) theke ascche,,,,,
         app.put("/users/:email", async (req, res) => {
             const email = req.params.email;
             const user = req.body;
@@ -115,7 +141,14 @@ async function run() {
                 $set: user,
             };
             const result = await usersCollection.updateOne(filter, updateDoc, options);
-            res.send(result)
+            const token = jwt.sign({ email: email }, process.env.ACCESS_SECRET_TOKEN, { expiresIn: '10h' })
+            res.send({ result, accessToken: token })
+        })
+
+        // (All users Api for all users component)
+        app.get('/users', async (req, res) => {
+            const result = await usersCollection.find().toArray();
+            res.send(result);
         })
 
 
