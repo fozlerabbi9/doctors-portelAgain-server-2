@@ -12,6 +12,7 @@ app.use(express.json());
 const verifyJwt = (req, res, next) => {
     // console.log('======verifyJwt')
     const authorizToken = req.headers?.authorization;
+    console.log(authorizToken);
     if (!authorizToken) {
         return res.status(401).send({ message: "UnAuthorized Access" })
     }
@@ -21,12 +22,13 @@ const verifyJwt = (req, res, next) => {
         if (err) {
             return res.status(403).send({ message: "Forbidden Access" })
         }
-        console.log(decoded)
+        // console.log(decoded)
         req.decoded = decoded;
         next()
     })
 
 }
+// console.log(process.env.ACCESS_SECRET_TOKEN)
 
 
 // const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.lqiskfd.mongodb.net/?retryWrites=true&w=majority`;
@@ -112,6 +114,13 @@ async function run() {
             res.send({ success: true, result })
         })
 
+        app.get("/admin/:email", async (req, res) => {
+            const email = req.params.email;
+            const user = await usersCollection.findOne({ email: email });
+            const isAdmin = user.role === "admin";
+            res.send({ admin: isAdmin });
+        });
+
         // (myAppointment) er api theke assche  email assche and body te authorization hisebe Berer a ("accessToken") asseche
         // app.get("/booking", async (req, res) => {
         app.get("/booking", verifyJwt, async (req, res) => {
@@ -131,22 +140,58 @@ async function run() {
             }
         })
 
-        // Put API  (useToken) theke ascche,,,,,
+        // make a admin (API) admin button a click korle ei api ta kaj korbe,,,, allusers.js file......
+        // app.put("/users/admin/:email", verifyJwt, async (req, res) => {
+        app.put("/users/admin/:email", verifyJwt, async (req, res) => {
+            const email = req.params.email;
+            const requister = req.decoded.email;
+            const requisterAccount = await usersCollection.findOne({ email: requister });
+            if (requisterAccount.role === "admin") {
+                const filter = { email: email };
+                const updateDoc = {
+                    $set: { role: "admin" },
+                };
+                const result = await usersCollection.updateOne(filter, updateDoc);
+                res.send(result)
+            }
+            else {
+                res.status(403).send({ message: "forbidden" })
+            }
+
+
+        })
+
+        // remove admin panale (update role and remove admin  API hit form allUser. js file removeAdmin fun)
+        app.put("/removeAdmin/:email", async (req, res) => {
+            const email = req.params.email;
+            const filter = { email: email };
+            const options = { upsert: true };
+            const updateDoc = {
+                $set: { role: " " }
+            }
+            const result = await usersCollection.updateOne(filter, updateDoc, options);
+            res.send(result)
+        })
+
+        // Put API  (useToken) theke ascche,,,,,================= এই api তো token generate korbe ,,, back end থেক নিয়ে front end এ পাঠাবে ,,,
+        // app.put("/users/:email", async (req, res) => {
         app.put("/users/:email", async (req, res) => {
             const email = req.params.email;
             const user = req.body;
             const filter = { email: email };
             const options = { upsert: true };
+            console.log("genarating token")
             const updateDoc = {
                 $set: user,
             };
             const result = await usersCollection.updateOne(filter, updateDoc, options);
-            const token = jwt.sign({ email: email }, process.env.ACCESS_SECRET_TOKEN, { expiresIn: '10h' })
-            res.send({ result, accessToken: token })
+            const token = jwt.sign({ email: email }, process.env.ACCESS_SECRET_TOKEN, { expiresIn: '1y' });
+            res.send({ result, accessToken: token });
         })
 
         // (All users Api for all users component)
-        app.get('/users', async (req, res) => {
+        // app.get('/users', verifyJwt, async (req, res) => {
+        app.get('/users', verifyJwt, async (req, res) => {         // ====== >> varify fun thakar karone map kaj korse na 
             const result = await usersCollection.find().toArray();
             res.send(result);
         })
